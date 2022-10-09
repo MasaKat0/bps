@@ -110,8 +110,8 @@ BPS <- function(y, mean_agent, var_agent, df_agent, disc_rate, prior_mean, prior
   
   
   for (i in 1:mcmc_iter) {
-    print("mcmc iter:")
-    print(i)
+    # print("mcmc iter:")
+    # print(i)
     # Forward Filter
     for (t in 1:T) {
       #F_t <- X_t[t, (p*i - (p_x - 1)):(p*i)] %>% t()
@@ -154,6 +154,7 @@ BPS <- function(y, mean_agent, var_agent, df_agent, disc_rate, prior_mean, prior
     v_k[i,1] <- 1/rand_gamma
     a_k[i,] = m_t[nrow(m_t),]
     R_k[(p*i-(p-1)):(p*i),] = (C_t[(nrow(C_t)-(p-1)):nrow(C_t),]/d)*(v_k[i,1]/s_t[nrow(s_t),i])
+    
     # backward-sampler
     for (t in rev(1:(T-1))) {
       rand_gamma <- rgamma(n = 1, shape = (1-beta)*n_t[t+1]/2, rate = 2/(n_t[t+1]*s_t[t+1,i]))
