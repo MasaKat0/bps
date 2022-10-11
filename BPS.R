@@ -1,4 +1,5 @@
 library(MASS)
+library(MCMCpack)
 library(dplyr)
 
 BPS <- function(y, mean_agent, var_agent, df_agent, disc_rate, prior_mean, prior_var, prior_df, prior_obs_var, burn_in, mcmc_iter){
@@ -61,6 +62,8 @@ BPS <- function(y, mean_agent, var_agent, df_agent, disc_rate, prior_mean, prior
   
   mcmc_iter = burn_in + mcmc_iter
   
+  print(p_x)
+  print(p)
   m_t <- matrix(0, T + 1, p)
   C_t <- matrix(0, (T + 1)*p, p)
   n_t <- matrix(0, T + 1, 1)
@@ -110,8 +113,12 @@ BPS <- function(y, mean_agent, var_agent, df_agent, disc_rate, prior_mean, prior
   
   
   for (i in 1:mcmc_iter) {
-    # print("mcmc iter:")
-    # print(i)
+    
+    if ( i %% 100 == 0) {
+      print("mcmc iter:")
+      print(i)
+    }
+  
     # Forward Filter
     for (t in 1:T) {
       #F_t <- X_t[t, (p*i - (p_x - 1)):(p*i)] %>% t()
@@ -141,17 +148,16 @@ BPS <- function(y, mean_agent, var_agent, df_agent, disc_rate, prior_mean, prior
       m_t[t+1,] <- a_t[t,] + t(A_t*e_t)
       C_t[(p*(t + 1) - (p - 1)):(p*(t + 1)),] <- std_var(r_t*(R_t[(p*t - (p - 1)):(p*t),] - q_t[t,1]*(A_t %*% t(A_t))))
     }
+    
     # sample theta at T
-    rand_gamma <- rgamma(n = 1, shape = n_t[nrow(n_t)]/2, rate = 2/(n_t[nrow(n_t)]*s_t[nrow(s_t),i]))
-    v_t[nrow(v_t),i] = 1/rand_gamma
+    v_t[nrow(v_t),i] = rinvgamma(n=1,  n_t[nrow(n_t)]/2, 2/(n_t[nrow(n_t)]*s_t[nrow(s_t),i]))
     
     chol_variance <- length(m_t[nrow(m_t),])*chol(std_var(C_t[(nrow(C_t)-(p-1)):nrow(C_t),]*v_t[nrow(v_t),i]/s_t[nrow(s_t),i]))
     theta_t[nrow(theta_t), (p*i-(p-1)):(p*i)] = mvrnorm(1, m_t[nrow(m_t),], chol_variance)
     
     # theta at T+1
     n_k = beta*n_t[nrow(n_t)]+1;
-    rand_gamma <- rgamma(n = 1, shape = beta*n_t[nrow(n_t)]/2, rate = 2/(beta*n_t[nrow(n_t)]*s_t[nrow(s_t),i]))
-    v_k[i,1] <- 1/rand_gamma
+    v_k[i,1] <- rinvgamma(n = 1, beta*n_t[nrow(n_t)]/2, 2/(beta*n_t[nrow(n_t)]*s_t[nrow(s_t),i]))
     a_k[i,] = m_t[nrow(m_t),]
     R_k[(p*i-(p-1)):(p*i),] = (C_t[(nrow(C_t)-(p-1)):nrow(C_t),]/d)*(v_k[i,1]/s_t[nrow(s_t),i])
     
@@ -162,7 +168,7 @@ BPS <- function(y, mean_agent, var_agent, df_agent, disc_rate, prior_mean, prior
       m_star_t = t(m_t[t+1,]) + d*(t(theta_t[t+1,(p*i-(p-1)):(p*i)])-t(a_t[t+1,]))
       C_star_t = C_t[(p*(t+1)-(p-1)):(p*(t+1)),]*(1-d)*(v_t[t,i]/s_t[t+1,i])
       chol_variance <- length(m_star_t)*chol(std_var(C_star_t))
-      theta_t[t,(p*i-(p-1)):(p*i)] <- mvrnorm(1, m_star_t[1,], length(m_star_t)*chol(std_var(C_star_t)))
+      theta_t[t,(p*i-(p-1)):(p*i)] <- mvrnorm(1, m_star_t, chol_variance)
     }
         
     for (t in 1:T) {
