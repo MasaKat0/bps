@@ -95,8 +95,8 @@ for (t in 50:(T-1)) {
     rand_gamma <- rgamma(n = 1, shape =disc_rate[2]*n[t+1]/2)
     lambda <- sqrt(0.5*disc_rate[2]*n[t+1]/rand_gamma)
     
-    chol_variance <- length(a[t+1,])*chol(std_var(diag(A[t+1,])))
-    x_t <- mvrnorm(1, matrix(0, nrow(chol_variance)), chol_variance)
+    std_x= std_var(diag(A[t+1,]))
+    x_t <- mvrnorm(1, matrix(0, nrow(std_x)), std_x)
     x_t <- t(matrix(c(1, a[t+1,] + x_t)))
     
     # compute aggregated mean and variance

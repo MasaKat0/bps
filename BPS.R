@@ -105,9 +105,7 @@ BPS <- function(y, mean_agent, var_agent, df_agent, disc_rate, prior_mean, prior
       var_gamma <- rgamma(1, beta*df_agent[t,n]/2)
       phi_t[t,n] = 0.5*beta*df_agent[t,n]/var_gamma
     }
-    
-    chol_variance <- chol(std_var(diag(phi_t[t,]*var_agent[t,])))
-    var_normal <- mvrnorm(1, matrix(0, p_x), chol_variance)
+    var_normal <- mvrnorm(1, matrix(0, p_x), std_var(diag(phi_t[t,]*var_agent[t,])))
     X_t[t,1:p_x] = mean_agent[t,]+var_normal
   }
   
@@ -152,8 +150,7 @@ BPS <- function(y, mean_agent, var_agent, df_agent, disc_rate, prior_mean, prior
     # sample theta at T
     v_t[nrow(v_t),i] = rinvgamma(n=1,  n_t[nrow(n_t)]/2, 2/(n_t[nrow(n_t)]*s_t[nrow(s_t),i]))
     
-    chol_variance <- length(m_t[nrow(m_t),])*chol(std_var(C_t[(nrow(C_t)-(p-1)):nrow(C_t),]*v_t[nrow(v_t),i]/s_t[nrow(s_t),i]))
-    theta_t[nrow(theta_t), (p*i-(p-1)):(p*i)] = mvrnorm(1, m_t[nrow(m_t),], chol_variance)
+    theta_t[nrow(theta_t), (p*i-(p-1)):(p*i)] = mvrnorm(1, m_t[nrow(m_t),], std_var(C_t[(nrow(C_t)-(p-1)):nrow(C_t),]*v_t[nrow(v_t),i]/s_t[nrow(s_t),i]))
     
     # theta at T+1
     n_k = beta*n_t[nrow(n_t)]+1;
@@ -167,8 +164,7 @@ BPS <- function(y, mean_agent, var_agent, df_agent, disc_rate, prior_mean, prior
       v_t[t,i] = 1/(1/v_t[t+1,i]*beta+rand_gamma)
       m_star_t = t(m_t[t+1,]) + d*(t(theta_t[t+1,(p*i-(p-1)):(p*i)])-t(a_t[t+1,]))
       C_star_t = C_t[(p*(t+1)-(p-1)):(p*(t+1)),]*(1-d)*(v_t[t,i]/s_t[t+1,i])
-      chol_variance <- length(m_star_t)*chol(std_var(C_star_t))
-      theta_t[t,(p*i-(p-1)):(p*i)] <- mvrnorm(1, m_star_t, chol_variance)
+      theta_t[t,(p*i-(p-1)):(p*i)] <- mvrnorm(1, m_star_t, std_var(C_star_t))
     }
         
     for (t in 1:T) {
@@ -176,11 +172,11 @@ BPS <- function(y, mean_agent, var_agent, df_agent, disc_rate, prior_mean, prior
       a_st = t(matrix(mean_agent[t,]))
       theta_p = t(matrix(theta_t[t,(p*i-(p-2)):(p*i)]))
       theta_1 = theta_t[t,p*i-(p-1)]
-      sigma = (theta_p %*% A_st)/((v_t[t,i] + theta_p %*% A_st %*% t(theta_p) )[1.1])
+      sigma = (theta_p %*% A_st)/((v_t[t,i] + theta_p %*% A_st %*% t(theta_p) )[1,1])
       a_star = a_st+sigma*(y[t]-(theta_1+(theta_p %*% t(a_st))[1,1]));
       A_star = std_var(A_st-A_st %*% t(theta_p) %*% sigma);
       #A_star = std_var(A_st);
-      X_t[t,(p_x*(i+1)-(p_x-1)):(p_x*(i+1))] = mvrnorm(1, a_star, length(a_star)*chol(std_var(A_star))) 
+      X_t[t,(p_x*(i+1)-(p_x-1)):(p_x*(i+1))] = mvrnorm(1, a_star, std_var(A_star))
       scale_values = (df_agent[t,]+(X_t[t,(p_x*(i+1)-(p_x-1)):(p_x*(i+1))]-a_st)^2/var_agent[t,]) / 2
       for (n in 1:length(scale_values)) {
         phi_t[t,n] = 0.5*(df_agent[t,n]+1)/rgamma(n = 1, shape = scale_values[n])
